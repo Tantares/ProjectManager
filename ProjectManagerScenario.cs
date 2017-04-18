@@ -117,23 +117,25 @@ namespace ProjectManager
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+            string saveFolder = HighLogic.SaveFolder;
 
             // Get root node from settings file on disk.
-            rootNode = ConfigNode.Load(KSPUtil.ApplicationRootPath + "GameData/ProjectManager/ProjectManager.settings");
+            rootNode = ConfigNode.Load(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
 
             if (rootNode == null)
             {
                 rootNode = new ConfigNode("PROJECTS");
-                rootNode.Save(KSPUtil.ApplicationRootPath + "GameData/ProjectManager/ProjectManager.settings");
+                rootNode.Save(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
             }
         }
 
         public override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
+            string saveFolder = HighLogic.SaveFolder;
 
             // Save the rootnode to a file on disk.
-            rootNode.Save(KSPUtil.ApplicationRootPath + "GameData/ProjectManager/ProjectManager.settings");
+            rootNode.Save(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
         }
     }
 }
