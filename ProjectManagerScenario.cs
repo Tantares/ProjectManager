@@ -9,6 +9,7 @@ namespace ProjectManager
         #region Fields
 
         public const string launchCountKey = "launchCount";
+        public const string seriesNameKey = "seriesName";
         public static ConfigNode rootNode;
 
         #endregion Fields
@@ -42,11 +43,10 @@ namespace ProjectManager
                     string seriesName = seriesMatch.Value;
 
                     // Strip square brackets from series name.
-                    seriesName = seriesName.Replace("[", "");
-                    seriesName = seriesName.Replace("]", "");
+                    seriesName = seriesName.Replace("[", string.Empty).Replace("]", string.Empty).Trim();
 
-                    // Create series node name by stripping any whitespace.
-                    string seriesNodeName = Regex.Replace(seriesName, @"\s+", "");
+                    // NOTE: Whitespace should be allowed in series name, so switch to internally using this as a node key while the series name is saved in config
+                    string seriesId = Regex.Replace(seriesName, @"\s+", "");
 
                     var projectNodes = rootNode.GetNodes();
 
@@ -55,7 +55,7 @@ namespace ProjectManager
 
                     foreach (var projectNode in projectNodes)
                     {
-                        if (projectNode.name == seriesNodeName)
+                        if (projectNode.name == seriesId)
                         {
                             projectFound = true;
                         }
@@ -63,7 +63,7 @@ namespace ProjectManager
 
                     if (projectFound)
                     {
-                        var projectNode = rootNode.GetNode(seriesNodeName);
+                        var projectNode = rootNode.GetNode(seriesId);
 
                         if (projectNode != null)
                         {
@@ -82,7 +82,8 @@ namespace ProjectManager
                                 vessel.vesselName = launchName;
 
                                 // Write new launchcount back to node.
-                                projectNode.SetValue("launchCount", launchCount.ToString());
+                                projectNode.SetValue(launchCountKey, launchCount.ToString(), true);
+                                projectNode.SetValue(seriesNameKey, seriesName, true);
                             }
                         }
                     }
@@ -95,8 +96,9 @@ namespace ProjectManager
                         vessel.vesselName = launchName;
 
                         // Create new entry for this series, set launch count to one.
-                        var projectNode = rootNode.AddNode(seriesNodeName);
+                        var projectNode = rootNode.AddNode(seriesId);
                         projectNode.AddValue(launchCountKey, "1");
+                        projectNode.AddValue(seriesNameKey, seriesName);
                     }
                 }
             }

@@ -9,6 +9,7 @@ namespace ProjectManager
     {
         #region Fields
 
+        private const string iconPath = "ProjectManager/Plugins/pm";
         private static KSP.UI.Screens.ApplicationLauncherButton appButton;
         private static Texture appIcon;
         private static GameObject window;
@@ -19,7 +20,7 @@ namespace ProjectManager
 
         public void Awake()
         {
-            appIcon = GameDatabase.Instance.GetTexture("ProjectManager/Plugins/pm", false);
+            appIcon = GameDatabase.Instance.GetTexture(iconPath, false);
             GameEvents.onGUIApplicationLauncherReady.Add(AddButton);
             GameEvents.onGUIApplicationLauncherDestroyed.Add(RemoveButton);
         }
@@ -39,7 +40,8 @@ namespace ProjectManager
         {
             if (window != null)
             {
-                Destroy(window);
+                DestroyImmediate(window);
+                window = null;
             }
         }
 
@@ -70,12 +72,7 @@ namespace ProjectManager
     {
         #region Fields
 
-        private static string launchCountValue = string.Empty;
-        private static bool positionSet = false;
-        private static string selectedNode = string.Empty;
-        private static Rect windowPosition;
-        private readonly int windowId = Guid.NewGuid().GetHashCode();
-        private bool initialLoad = true;
+        private const string title = "Project Manager";
 
         #endregion Fields
 
@@ -90,30 +87,30 @@ namespace ProjectManager
 
         private enum PagingType
         {
-            None = 0,
-            Forward = 1,
-            Backward = 2
+            Forward = 0,
+            Backward = 1
         }
 
         #endregion Enums
 
         #region Methods
 
+        public void Awake()
+        {
+            if (!WindowInfo.IsSet)
+            {
+                var center = new Vector2((Screen.width / 2.0f) - (WindowInfo.Width / 2.0f), (Screen.height / 2.0f) - (WindowInfo.Height / 2.0f));
+                WindowInfo.Position = new Rect(center.x, center.y, WindowInfo.Width, WindowInfo.Height);
+                WindowInfo.IsSet = true;
+            }
+            WindowInfo.Id = Guid.NewGuid().GetHashCode();
+            InitialLoad();
+        }
+
         public void OnGUI()
         {
-            if (!positionSet)
-            {
-                var center = new Vector2(Screen.width / 2.0f, Screen.height / 2.0f);
-                windowPosition = new Rect(center.x, center.y, 250, 100);
-                positionSet = true;
-            }
-            if (initialLoad)
-            {
-                SetNode(PagingType.None);
-                initialLoad = false;
-            }
-            GUILayout.BeginArea(windowPosition);
-            windowPosition = GUILayout.Window(windowId, windowPosition, DrawWindow, "Project Manager");
+            GUILayout.BeginArea(WindowInfo.Position);
+            WindowInfo.Position = GUILayout.Window(WindowInfo.Id, WindowInfo.Position, DrawWindow, title);
             GUILayout.EndArea();
         }
 
@@ -126,7 +123,7 @@ namespace ProjectManager
             }
             var centeredStyle = GUI.skin.GetStyle("Label");
             centeredStyle.alignment = TextAnchor.MiddleCenter;
-            GUILayout.Label(!string.IsNullOrEmpty(selectedNode) ? selectedNode : "Nothing selected", centeredStyle);
+            GUILayout.Label(!string.IsNullOrEmpty(NodeInfo.Selected) ? NodeInfo.Label : "Nothing selected", centeredStyle);
             if (GUILayout.Button(">", GUILayout.Width(25)))
             {
                 SetNode(PagingType.Forward);
@@ -141,16 +138,16 @@ namespace ProjectManager
                 var value = GetValue(OperationType.Decrement);
                 if (value.HasValue)
                 {
-                    launchCountValue = value.ToString();
+                    NodeInfo.Value = value.ToString();
                 }
             }
-            launchCountValue = GUILayout.TextField(launchCountValue);
+            NodeInfo.Value = GUILayout.TextField(NodeInfo.Value);
             if (GUILayout.Button("+", GUILayout.Width(25)))
             {
                 var value = GetValue(OperationType.Increment);
                 if (value.HasValue)
                 {
-                    launchCountValue = value.ToString();
+                    NodeInfo.Value = value.ToString();
                 }
             }
             GUILayout.EndHorizontal();
@@ -171,7 +168,7 @@ namespace ProjectManager
                     var node = GetNode();
                     if (node != null)
                     {
-                        launchCountValue = node.GetValue(ProjectManagerScenario.launchCountKey);
+                        NodeInfo.Value = node.GetValue(ProjectManagerScenario.launchCountKey);
                     }
                 }
             }
@@ -183,7 +180,7 @@ namespace ProjectManager
         {
             if (ProjectManagerScenario.rootNode != null)
             {
-                return ProjectManagerScenario.rootNode.GetNodes().FirstOrDefault(p => p.name == selectedNode);
+                return ProjectManagerScenario.rootNode.GetNodes().FirstOrDefault(p => p.name == NodeInfo.Selected);
             }
             return null;
         }
@@ -192,7 +189,7 @@ namespace ProjectManager
         {
             int value = 0;
             var node = GetNode();
-            if (node != null && int.TryParse(launchCountValue, out value))
+            if (node != null && int.TryParse(NodeInfo.Value, out value))
             {
                 switch (type)
                 {
@@ -216,19 +213,24 @@ namespace ProjectManager
             return null;
         }
 
+        private void InitialLoad()
+        {
+            var currentNode = GetNode();
+            if (currentNode != null)
+            {
+                NodeInfo.Value = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
+            }
+            else
+            {
+                SetNode(PagingType.Forward);
+            }
+        }
+
         private void SetNode(PagingType type)
         {
             if (ProjectManagerScenario.rootNode != null)
             {
                 var currentNode = GetNode();
-                if (type == PagingType.None)
-                {
-                    if (currentNode != null)
-                    {
-                        launchCountValue = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
-                    }
-                    return;
-                }
                 if (currentNode != null)
                 {
                     var index = ProjectManagerScenario.rootNode.GetNodes().IndexOf(currentNode);
@@ -250,7 +252,7 @@ namespace ProjectManager
                             }
                             break;
                     }
-                    selectedNode = ProjectManagerScenario.rootNode.GetNodes()[index].name;
+                    NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[index].name;
                 }
                 else
                 {
@@ -259,11 +261,11 @@ namespace ProjectManager
                         switch (type)
                         {
                             case PagingType.Backward:
-                                selectedNode = ProjectManagerScenario.rootNode.GetNodes()[ProjectManagerScenario.rootNode.GetNodes().Count() - 1].name;
+                                NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[ProjectManagerScenario.rootNode.GetNodes().Count() - 1].name;
                                 break;
 
                             default:
-                                selectedNode = ProjectManagerScenario.rootNode.GetNodes()[0].name;
+                                NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[0].name;
                                 break;
                         }
                     }
@@ -271,11 +273,55 @@ namespace ProjectManager
                 currentNode = GetNode();
                 if (currentNode != null)
                 {
-                    launchCountValue = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
+                    NodeInfo.Value = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
+                    NodeInfo.Label = currentNode.GetValue(ProjectManagerScenario.seriesNameKey);
                 }
             }
         }
 
         #endregion Methods
+
+        #region Classes
+
+        private class NodeInfo
+        {
+            #region Properties
+
+            public static string Label { get; set; }
+            public static string Selected { get; set; }
+            public static string Value { get; set; }
+
+            #endregion Properties
+        }
+
+        private class WindowInfo
+        {
+            #region Properties
+
+            public static int Height
+            {
+                get
+                {
+                    return 100;
+                }
+            }
+
+            public static int Id { get; set; }
+            public static bool IsSet { get; set; }
+
+            public static Rect Position { get; set; }
+
+            public static int Width
+            {
+                get
+                {
+                    return 250;
+                }
+            }
+
+            #endregion Properties
+        }
+
+        #endregion Classes
     }
 }
