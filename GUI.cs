@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ namespace ProjectManager
             if (ProjectManagerScenario.rootNode != null)
             {
                 OnClose();
-                window = new GameObject("GUIWindow", typeof(GUIWindow));
+                window = new GameObject(typeof(GUIWindow).Name, typeof(GUIWindow));
             }
         }
 
@@ -114,19 +115,39 @@ namespace ProjectManager
             GUILayout.EndArea();
         }
 
+        private void CopyNodeInfo()
+        {
+            if (ProjectManagerScenario.rootNode != null)
+            {
+                List<ProjectInfo> configs = new List<ProjectInfo>();
+                foreach (var node in ProjectManagerScenario.rootNode.GetNodes())
+                {
+                    var value = 0;
+                    int.TryParse(node.GetValue(ProjectManagerScenario.launchCountKey), out value);
+                    configs.Add(new ProjectInfo()
+                    {
+                        Name = node.name,
+                        Value = value,
+                        Label = node.GetValue(ProjectManagerScenario.seriesNameKey)
+                    });
+                }
+                NodeInfo.Nodes = configs.OrderBy(p => p.Label).ToList();
+            }
+        }
+
         private void DrawWindow(int id)
         {
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("<", GUILayout.Width(25)))
             {
-                SetNode(PagingType.Backward);
+                NodeInfo.SetNode(PagingType.Backward);
             }
             var centeredStyle = GUI.skin.GetStyle("Label");
             centeredStyle.alignment = TextAnchor.MiddleCenter;
-            GUILayout.Label(!string.IsNullOrEmpty(NodeInfo.Selected) ? NodeInfo.Label : "Nothing selected", centeredStyle);
+            GUILayout.Label(NodeInfo.Selected != null ? NodeInfo.Selected.Label : "Nothing selected", centeredStyle);
             if (GUILayout.Button(">", GUILayout.Width(25)))
             {
-                SetNode(PagingType.Forward);
+                NodeInfo.SetNode(PagingType.Forward);
             }
             GUILayout.EndHorizontal();
 
@@ -135,40 +156,43 @@ namespace ProjectManager
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("-", GUILayout.Width(25)))
             {
-                var value = GetValue(OperationType.Decrement);
-                if (value.HasValue)
+                var value = NodeInfo.GetValue(OperationType.Decrement);
+                if (value.HasValue && NodeInfo.Selected != null)
                 {
-                    NodeInfo.Value = value.ToString();
+                    NodeInfo.Selected.Value = value.GetValueOrDefault();
                 }
             }
-            NodeInfo.Value = GUILayout.TextField(NodeInfo.Value);
+            if (NodeInfo.Selected != null)
+            {
+                int value = 0;
+                if (int.TryParse(GUILayout.TextField(NodeInfo.Selected.Value.ToString()), out value))
+                {
+                    NodeInfo.Selected.Value = value;
+                }
+            }
+            else
+            {
+                GUILayout.TextField("0");
+            }
             if (GUILayout.Button("+", GUILayout.Width(25)))
             {
-                var value = GetValue(OperationType.Increment);
-                if (value.HasValue)
+                var value = NodeInfo.GetValue(OperationType.Increment);
+                if (value.HasValue && NodeInfo.Selected != null)
                 {
-                    NodeInfo.Value = value.ToString();
+                    NodeInfo.Selected.Value = value.GetValueOrDefault();
                 }
             }
             GUILayout.EndHorizontal();
 
             if (GUILayout.Button("Save"))
             {
-                var val = GetValue(OperationType.None);
+                var val = NodeInfo.GetValue(OperationType.None);
                 if (val.HasValue)
                 {
-                    var node = GetNode();
+                    var node = GetConfigNode();
                     if (node != null)
                     {
                         node.SetValue(ProjectManagerScenario.launchCountKey, val.ToString(), true);
-                    }
-                }
-                else
-                {
-                    var node = GetNode();
-                    if (node != null)
-                    {
-                        NodeInfo.Value = node.GetValue(ProjectManagerScenario.launchCountKey);
                     }
                 }
             }
@@ -176,106 +200,25 @@ namespace ProjectManager
             GUI.DragWindow();
         }
 
-        private ConfigNode GetNode()
+        private ConfigNode GetConfigNode()
         {
-            if (ProjectManagerScenario.rootNode != null)
+            if (ProjectManagerScenario.rootNode != null && NodeInfo.Selected != null)
             {
-                return ProjectManagerScenario.rootNode.GetNodes().FirstOrDefault(p => p.name == NodeInfo.Selected);
-            }
-            return null;
-        }
-
-        private int? GetValue(OperationType type)
-        {
-            int value = 0;
-            var node = GetNode();
-            if (node != null && int.TryParse(NodeInfo.Value, out value))
-            {
-                switch (type)
-                {
-                    case OperationType.Increment:
-                        value++;
-                        break;
-
-                    case OperationType.Decrement:
-                        value--;
-                        break;
-
-                    default:
-                        break;
-                }
-                if (value < 0)
-                {
-                    value = 0;
-                }
-                return value;
+                return ProjectManagerScenario.rootNode.GetNodes().FirstOrDefault(p => p.name == NodeInfo.Selected.Name);
             }
             return null;
         }
 
         private void InitialLoad()
         {
-            var currentNode = GetNode();
-            if (currentNode != null)
+            CopyNodeInfo();
+            if (NodeInfo.Selected != null)
             {
-                NodeInfo.Value = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
+                NodeInfo.RestoreSelected();
             }
             else
             {
-                SetNode(PagingType.Forward);
-            }
-        }
-
-        private void SetNode(PagingType type)
-        {
-            if (ProjectManagerScenario.rootNode != null)
-            {
-                var currentNode = GetNode();
-                if (currentNode != null)
-                {
-                    var index = ProjectManagerScenario.rootNode.GetNodes().IndexOf(currentNode);
-                    switch (type)
-                    {
-                        case PagingType.Backward:
-                            index--;
-                            if (index < 0)
-                            {
-                                index = ProjectManagerScenario.rootNode.GetNodes().Count() - 1;
-                            }
-                            break;
-
-                        default:
-                            index++;
-                            if (index > (ProjectManagerScenario.rootNode.GetNodes().Count() - 1))
-                            {
-                                index = 0;
-                            }
-                            break;
-                    }
-                    NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[index].name;
-                }
-                else
-                {
-                    if (ProjectManagerScenario.rootNode.GetNodes().Count() > 0)
-                    {
-                        switch (type)
-                        {
-                            case PagingType.Backward:
-                                NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[ProjectManagerScenario.rootNode.GetNodes().Count() - 1].name;
-                                break;
-
-                            default:
-                                NodeInfo.Selected = ProjectManagerScenario.rootNode.GetNodes()[0].name;
-                                break;
-                        }
-                    }
-                }
-                currentNode = GetNode();
-                if (currentNode != null)
-                {
-                    NodeInfo.Value = currentNode.GetValue(ProjectManagerScenario.launchCountKey);
-                    NodeInfo.Label = currentNode.GetValue(ProjectManagerScenario.seriesNameKey);
-                }
+                NodeInfo.SetNode(PagingType.Forward);
             }
         }
 
@@ -285,11 +228,125 @@ namespace ProjectManager
 
         private class NodeInfo
         {
+            #region Fields
+
+            private static ProjectInfo _selected;
+            private static string selectedId;
+
+            #endregion Fields
+
             #region Properties
 
-            public static string Label { get; set; }
-            public static string Selected { get; set; }
-            public static string Value { get; set; }
+            public static List<ProjectInfo> Nodes { get; set; }
+
+            public static ProjectInfo Selected
+            {
+                get
+                {
+                    return _selected;
+                }
+                set
+                {
+                    _selected = value;
+                    if (value != null)
+                    {
+                        selectedId = value.Name;
+                    }
+                }
+            }
+
+            #endregion Properties
+
+            #region Methods
+
+            public static int? GetValue(OperationType type)
+            {
+                if (Selected != null)
+                {
+                    var value = Selected.Value;
+                    switch (type)
+                    {
+                        case OperationType.Increment:
+                            value++;
+                            break;
+
+                        case OperationType.Decrement:
+                            value--;
+                            break;
+
+                        default:
+                            break;
+                    }
+                    return value;
+                }
+                return null;
+            }
+
+            public static void RestoreSelected()
+            {
+                if (!string.IsNullOrEmpty(selectedId) && Nodes.Count > 0)
+                {
+                    var node = Nodes.FirstOrDefault(p => p.Name == selectedId);
+                    if (node != null)
+                    {
+                        Selected = node;
+                    }
+                }
+            }
+
+            public static void SetNode(PagingType type)
+            {
+                if (Selected != null)
+                {
+                    var index = Nodes.IndexOf(Selected);
+                    switch (type)
+                    {
+                        case PagingType.Backward:
+                            index--;
+                            if (index < 0)
+                            {
+                                index = Nodes.Count() - 1;
+                            }
+                            break;
+
+                        default:
+                            index++;
+                            if (index > (Nodes.Count() - 1))
+                            {
+                                index = 0;
+                            }
+                            break;
+                    }
+                    Selected = Nodes[index];
+                }
+                else
+                {
+                    if (Nodes.Count() > 0)
+                    {
+                        switch (type)
+                        {
+                            case PagingType.Backward:
+                                Selected = Nodes[Nodes.Count - 1];
+                                break;
+
+                            default:
+                                Selected = Nodes[0];
+                                break;
+                        }
+                    }
+                }
+            }
+
+            #endregion Methods
+        }
+
+        private class ProjectInfo
+        {
+            #region Properties
+
+            public string Label { get; set; }
+            public string Name { get; set; }
+            public int Value { get; set; }
 
             #endregion Properties
         }
