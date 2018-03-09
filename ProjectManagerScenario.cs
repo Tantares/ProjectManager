@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace ProjectManager
 {
-    [KSPScenario(ScenarioCreationOptions.AddToAllGames, GameScenes.SPACECENTER)]
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] { GameScenes.SPACECENTER, GameScenes.EDITOR, GameScenes.FLIGHT })]
     class ProjectManagerScenario : ScenarioModule
     {
         public static ProjectManagerScenario Instance { get; private set; }
@@ -16,7 +16,7 @@ namespace ProjectManager
         // Settings node.
         public ConfigNode rootNode;
 
-        static bool subscribed = false;
+        bool subscribed = false;
 
         public override void OnAwake()
         {
@@ -26,11 +26,11 @@ namespace ProjectManager
             Instance = this;
 
             // Subscribe to launch event.
-            if(!subscribed)
+            if(!Instance.subscribed)
             {
                 GameEvents.OnVesselRollout.Add(ApplyLaunchNumber);
                 Debug.LogFormat("{0} Subscribed to rollout event.",DebugTag);
-                subscribed = true;
+                Instance.subscribed = true;
             }
             
         }
