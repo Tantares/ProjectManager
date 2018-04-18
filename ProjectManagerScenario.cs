@@ -136,25 +136,39 @@ namespace ProjectManager
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
-            string saveFolder = HighLogic.SaveFolder;
 
-            // Get root node from settings file on disk.
-            rootNode = ConfigNode.Load(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
+            // Load projects from the scenario's data, if present.
+            rootNode = node.GetNode("PROJECTS");
+
+            // If the projects aren't saved in the scenario yet, try to import
+            // from the legacy external config file.
+            if (rootNode == null)
+            {
+                string saveFolder = HighLogic.SaveFolder;
+
+                rootNode = ConfigNode.Load(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
+
+                if (rootNode != null)
+                {
+                    rootNode.name = "PROJECTS";
+
+                    Debug.LogFormat("{0} Imported project data from legacy ProjectManager.settings", DebugTag);
+                }
+            }
 
             if (rootNode == null)
             {
                 rootNode = new ConfigNode("PROJECTS");
-                rootNode.Save(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
+
+                Debug.LogFormat("{0} Initialized new project data", DebugTag);
             }
         }
 
         public override void OnSave(ConfigNode node)
         {
-            base.OnSave(node);
-            string saveFolder = HighLogic.SaveFolder;
+            node.AddNode(rootNode);
 
-            // Save the rootnode to a file on disk.
-            rootNode.Save(KSPUtil.ApplicationRootPath + "saves/" + saveFolder + "/ProjectManager.settings");
+            base.OnSave(node);
         }
     }
 }
