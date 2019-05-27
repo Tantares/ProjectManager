@@ -1,4 +1,4 @@
-#E X A M P L E   1
+E X A M P L E   1
 
 [STS] Discovery
 [STS] Atlantis
