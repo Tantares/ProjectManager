@@ -11,7 +11,7 @@ STS 2
 ...
 STS 999
 
-#E X A M P L E   2
+E X A M P L E   2
 
 [Gemini]* Lunar Gemini
 [Gemini]* Big Gemini
