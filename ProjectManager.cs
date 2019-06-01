@@ -22,6 +22,10 @@ namespace ProjectManager
 
         private ConfigNode project_manager_node;
 
+        // Functions.
+
+        private Func<string, string> GetProjectNameCode = x => x.ToUpper().Replace(" ", "_");
+
         public void Start()
         {
             // Subscribe to the launch event.
@@ -98,14 +102,14 @@ namespace ProjectManager
 
             // Write the existing project node, and launch number.
 
-            if (project_manager_node.HasNode(project_name))
+            if (project_manager_node.HasNode(GetProjectNameCode(project_name)))
             {
-                var project_node = project_manager_node.GetNode(project_name);
+                var project_node = project_manager_node.GetNode(GetProjectNameCode(project_name));
                 project_node.SetValue(VALUE_NAME_LAUNCH_NUMBER, launch_number, true);
             }
             else
             {
-                var project_node = project_manager_node.AddNode(project_name);
+                var project_node = project_manager_node.AddNode(GetProjectNameCode(project_name));
                 project_node.SetValue(VALUE_NAME_LAUNCH_NUMBER, launch_number, true);
             }
         }
@@ -128,10 +132,10 @@ namespace ProjectManager
 
         private int? GetPreviousLaunchNumber(string project_name)
         {
-            if (!project_manager_node.HasNode(project_name))
+            if (!project_manager_node.HasNode(GetProjectNameCode(project_name)))
                 return null;
 
-            var project_node = project_manager_node.GetNode(project_name);
+            var project_node = project_manager_node.GetNode(GetProjectNameCode(project_name));
 
             if (!project_node.HasValue(VALUE_NAME_LAUNCH_NUMBER))
                 return null;
