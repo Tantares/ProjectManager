@@ -15,7 +15,8 @@ namespace ProjectManager
         private const string NODE_NAME_PROJECT_MANAGER = "PROJECTMANAGER";
         private const string VALUE_NAME_LAUNCH_NUMBER = "LAUNCH_NUMBER";
         private const string LOG_PREFIX = "Project Manager";
-        private const string ROMAN_NUMERAL_FLAG = @"]*";
+        private const string FLAG_ROMAN_NUMERAL = @"]R";
+        private const string FLAG_ALPHABETICAL = @"]A";
         private const string REGEX_PROJECT_FORMAT = @"\[([^]]*)\]";
 
         // Fields.
@@ -156,9 +157,13 @@ namespace ProjectManager
 
         private string GetFormattedVesselName(string vessel_name, string project_name, int launch_number)
         {
-            if (vessel_name.Contains(ROMAN_NUMERAL_FLAG))
+            if (vessel_name.Contains(FLAG_ROMAN_NUMERAL))
             {
                 return string.Format("{0} {1}", project_name, GetRomanNumeral(launch_number));
+            }
+            else if(vessel_name.Contains(FLAG_ALPHABETICAL))
+            {
+                return string.Format("{0} {1}", project_name, GetLetter(launch_number));
             }
             else
             {
@@ -184,6 +189,36 @@ namespace ProjectManager
             if (number >= 4) return "IV" + GetRomanNumeral(number - 4);
             if (number >= 1) return "I" + GetRomanNumeral(number - 1);
             return "?";
+        }
+
+        private string GetLetter(int number)
+        {
+            return (number == 1) ? "A" :
+            (number == 2) ? "B" :
+            (number == 3) ? "C" :
+            (number == 4) ? "D" :
+            (number == 5) ? "E" :
+            (number == 6) ? "F" :
+            (number == 7) ? "G" :
+            (number == 8) ? "H" :
+            (number == 9) ? "I" :
+            (number == 10) ? "J" :
+            (number == 11) ? "K" :
+            (number == 12) ? "L" :
+            (number == 13) ? "M" :
+            (number == 14) ? "N" :
+            (number == 15) ? "O" :
+            (number == 16) ? "P" :
+            (number == 17) ? "Q" :
+            (number == 18) ? "R" :
+            (number == 19) ? "S" :
+            (number == 20) ? "T" :
+            (number == 21) ? "U" :
+            (number == 22) ? "V" :
+            (number == 23) ? "W" :
+            (number == 24) ? "X" :
+            (number == 25) ? "Y" :
+            (number == 26) ? "Z" : number.ToString();
         }
     }
 }
