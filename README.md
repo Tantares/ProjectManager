@@ -18,11 +18,11 @@ STS 999
 
 E X A M P L E   2
 
-[Gemini]* Lunar Gemini
+[Gemini]R Lunar Gemini
 
-[Gemini]* Big Gemini
+[Gemini]R Big Gemini
 
-[Gemini]* Regular Gemini
+[Gemini]R Regular Gemini
 
 These crafts, when launched, will be renamed to:
 
